@@ -1,6 +1,7 @@
 var net = require('net');
 var fs = require('fs');
 const config = require('../utils/config.js');
+const request = require('request');
 
 // Configuration parameters
 var HOST = config.host;

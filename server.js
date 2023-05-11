@@ -1,8 +1,11 @@
 // This server file will create the socket.io server, just for it to be held here, will log just log the data.
 const app = require('express')();
+const express = require('express');
 const cors = require('cors');
 const io = require('socket.io');
 const config = require('./utils/config.js');
+var bodyParser = require('body-parser');
+app.use(express.json({ limit: '10mb' }))
 const log = require('./utils/log.js').log;
 app.use(cors());
 const api = require('express')();
@@ -12,7 +15,7 @@ const apiServer = require('http').createServer(api);
 
 const SocketServer = require('http').createServer(app);
 
-const Socket = io(SocketServer, {
+const socket = io(SocketServer, {
     cors: {
         origin: '*',
         methods: ['GET', 'POST'],
@@ -23,46 +26,54 @@ const Socket = io(SocketServer, {
 //TCP socket will have all the connections and will call ClientSocket.emit('response', data.toString()); to send the data to the client.
 var i =0;
 
-Socket.on('connection', (socket) => {
-
+socket.on('connection', (socket) => {
     console.log('Web client connected');
+
     socket.onAny((event, ...args) => {
         console.log(event, args);
         });
 
-    socket.on('command', (command) => {
-        console.log('CLI socket.io - Received command from web client: ' + command);
-    });
+});
+
+function emitX(path, data) {
+    socket.emit(path, data);
+}    
+
+
+
     api.get('/cli', (req, res) => {
         console.log('API - command recieved and sending to socket' + req.query.command);
-        socket.emit('command', req.query.command);
+        //socket.emit('command', req.query.command);
+        emitX('response', req.query.command+'\n');
         res.send('Command recieved!');
         });
 
     api.post('/video', (req,res)=> {
-        console.log('API - Video recieved and sending to socket' + req.body);
-        socket.emit('video', req.body);
+        console.log('API - Video recieved and sending to socket', req.body);
+        emitX('video', req.body);
         res.send('Video recieved!');
     })
 
     api.post('/data', (req,res)=> {
-        console.log('API - Data recieved and sending to socket' + req.body);
-        socket.emit('data', req.body);
+        //Get body of request
+        console.log(req.body )
+        console.log('API - Data recieved and sending to socket', req.body);
+        emitX('data', req.body);
         res.send('Data recieved!');
     })
     
     //ASTA E DOAR DE TEST POTI SA O SCOTi
-    setInterval(() => {
-        socket.emit('response', 'test'+i+'\n');
+    /*setInterval(() => {
+        socket.emit('data', 'test'+i+'\n');
         i++;
-    }, 1000);
+    }, 1000);*/
 
     // Handle web client disconnects
     socket.on('disconnect', () => {
         console.log('CLI socket.io - Web client disconnected');
     });
 
-});
+
 
 SocketServer.listen(config.socket_port, () => {
     console.log('Socket server listening on port '+config.socket_port);

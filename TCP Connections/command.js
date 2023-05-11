@@ -4,17 +4,17 @@ const config = require('../utils/config.js');
 
 //Connect to the socket.io server
 const io = require('socket.io-client');
-const socket = io.connect(`http://${config.host}:${config.socket_port}`, {reconnect: true});
+const socketio = io.connect(`http://${config.host}:${config.socket_port}`, {reconnect: true});
 
 var tcpLoaded = false;
 
-socket.on('command', (command) => {
+socketio.on('command', (command) => {
     console.log('CLI socket.io - Received command from web client: ' + command);
 
         if(tcpLoaded) {
             const handleCommand = require('./command.js').handleCommand
             handleCommand(command);
-            console.log('CLI socket.io - Command sent to drone);
+            console.log('CLI socket.io - Command sent to drone');
         } else {
             console.log('CLI socket.io - TCP server not loaded yet');
         }
@@ -36,7 +36,7 @@ const tcpServer = net.createServer((socket) => {
     // Forward incoming data to the web client using Socket.io
     socket.on('data', (data) => {
         console.log('CLI TCP - Received data from drone and sending to server: ' + data);
-        io.emit('response', data.toString());
+        socketio.emit('response', data.toString());
       console.log(data);
     });
 
@@ -50,7 +50,7 @@ const tcpServer = net.createServer((socket) => {
 });
 
 tcpServer.listen(config.tcp_cli, () => {
-    console.log('TCP server listening on port '+tcp_cli);
+    console.log('TCP server listening on port '+config.tcp_cli);
 });
 
 
