@@ -4,8 +4,14 @@ const app = require('express')();
 const cors = require('cors');
 const exp = require('constants');
 const axios = require('axios');
+//import config from './config.json';
+const config = require('../../utils/config');
+const log = require('../../utils/log.js').log;
 app.use(cors());
 const httpServer = require('http').createServer(app);
+
+var tcpLoaded = false;
+
 const io = require('socket.io')(httpServer, {
     cors: {
         origin: '*',
@@ -14,57 +20,53 @@ const io = require('socket.io')(httpServer, {
     }
 });
 
-// Create a TCP server that listens on port 8080
 const tcpServer = net.createServer((socket) => {
-    console.log('TCP client connected');
-    const expressServer = require('express')();
-    expressServer.use(cors());
-
-    expressServer.get('/cli', (req, res) => {
-        //Get params from request
-
-        const data = req.query.command;
-        console.log('Received command from web client: ' + data);
+    console.log('CLI TCP - client connected');
+    tcpLoaded = true;
+    function handleCommand(data) {
+        console.log('CLI TCP - Received command from web client: ' + data)
         socket.write(data, function (err) {
             if (err) throw err;
-            console.log('Command sent');
+            console.log('CLI TCP - Command sent');
         });
-
-        res.send('Hello World!');
-    });
+    }
+    
     // Forward incoming data to the web client using Socket.io
     socket.on('data', (data) => {
+        console.log('CLI TCP - Received data from TCP client and forawrding to socket: ' + data.toString());
         io.emit('response', data.toString());
     });
 
     // Handle TCP client disconnects
     socket.on('end', () => {
-        console.log('TCP client disconnected');
+        console.log('CLI TCP - client disconnected');
     });
-    expressServer.listen(3005, () => {
-        console.log('Express server listening on port 3000');
-    });
+
+    module.exports = {
+        handleCommand: handleCommand
+    };
 });
+
+
 
 io.on('connection', (sock) => {
 
     console.log('Web client connected');
 
     sock.on('command', (command) => {
-        console.log('Received command from web client: ' + command);
-        //Using axios, Send command as a post request to localhost:3005
-        axios.get('http://localhost:3005/cli?command='+command, )
-            .then(function (response) {
-                //console.log(response);
-            })
-            .catch(function (error) {
-                console.log(error);
-            });
+        console.log('CLI socket.io - Received command from web client: ' + command);
+
+            if(tcpLoaded) {
+                const handleCommand = require('./cli+socket.js').handleCommand
+                handleCommand(command);
+            } else {
+                console.log('CLI socket.io - TCP server not loaded yet');
+            }
     });
 
     // Handle web client disconnects
     sock.on('disconnect', () => {
-        console.log('Web client disconnected');
+        console.log('CLI socket.io - Web client disconnected');
     });
 
 });

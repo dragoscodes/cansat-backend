@@ -1,43 +1,54 @@
-var net = require('net');
-var fs = require('fs');
-var express = require('express');
-var cors = require('cors');
-var http = require('http');
+const net = require('net');
+const axios = require('axios');
+const config = require('../utils/config.js');
 
-//Use a socket.io server as well to send data to the client using the port 3028
+//Connect to the socket.io server
+const io = require('socket.io-client');
+const socket = io.connect(`http://${config.host}:${config.socket_port}`, {reconnect: true});
 
-var HOST = 'localhost';
-var PORT = 3030;//3042
+var tcpLoaded = false;
 
-// Create Server instance 
-var tcp_server = net.createServer(onClientConnected);
+socket.on('command', (command) => {
+    console.log('CLI socket.io - Received command from web client: ' + command);
 
-tcp_server.listen(PORT, HOST, function () {
-  console.log('tcp_server listening on %j', tcp_server.address());
+        if(tcpLoaded) {
+            const handleCommand = require('./command.js').handleCommand
+            handleCommand(command);
+        } else {
+            console.log('CLI socket.io - TCP server not loaded yet');
+        }
 });
 
-function onClientConnected(sock) {
-  var remoteAddress = sock.remoteAddress + ':' + sock.remotePort;
-  console.log('TCP connected: %s', remoteAddress);
-
-  //something is wrong here
-
-  sock.write(data, function (err) {
-    if (err) throw err;
-    console.log('Command sent');
-  });
 
 
-  //Listen for data and save to file
-  sock.on('data', function (data) {
-    console.log('data from %s: %j', remoteAddress, data);
-    socket.emit('data', data);
-  });
+const tcpServer = net.createServer((socket) => {
+    console.log('CLI TCP - client connected');
+    tcpLoaded = true;
+    function handleCommand(data) {
+        console.log('CLI TCP - Received command from web client: ' + data)
+        socket.write(data, function (err) {
+            if (err) throw err;
+            console.log('CLI TCP - Command sent');
+        });
+    }
+    
+    // Forward incoming data to the web client using Socket.io
+    socket.on('data', (data) => {
+        io.emit('response', data.toString());
+      console.log(data);
+    });
 
-  sock.on('close', function () {
-    console.log('connection from %s closed', remoteAddress);
-  });
-  sock.on('error', function (err) {
-    console.log('Connection %s error: %s', remoteAddress, err.message);
-  });
-} 
+    // Handle TCP client disconnects
+    socket.on('end', () => {
+        console.log('CLI TCP - client disconnected');
+    });
+    module.exports = {
+        handleCommand: handleCommand
+    };
+});
+
+tcpServer.listen(8080, () => {
+    console.log('TCP server listening on port 8080');
+});
+
+

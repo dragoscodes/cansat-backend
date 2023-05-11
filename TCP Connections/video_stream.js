@@ -1,8 +1,10 @@
 var net = require('net');
 var fs = require('fs');
+const config = require('../utils/config.js');
+
 // Configuration parameters
-var HOST = 'localhost';
-var PORT = 3000;
+var HOST = config.host;
+var PORT = config.tcp_video;
 
 let frames = [];
 let currentFrame = [];
@@ -41,6 +43,16 @@ function onClientConnected(sock) {
 
       if (isJpeg) {
         currentFrame.push(byteArr[i]);
+         request.post({
+           url: 'http://localhost:4000/video',
+           body: Buffer.from(currentFrame),
+           headers: {
+             'Content-Type': 'image/jpeg'
+         }
+         }, function (error, response, body) {
+           console.log('Response: ' + response.statusCode);
+         });
+
       }
     }
 
