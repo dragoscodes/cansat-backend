@@ -14,6 +14,7 @@ socket.on('command', (command) => {
         if(tcpLoaded) {
             const handleCommand = require('./command.js').handleCommand
             handleCommand(command);
+            console.log('CLI socket.io - Command sent to drone);
         } else {
             console.log('CLI socket.io - TCP server not loaded yet');
         }
@@ -34,6 +35,7 @@ const tcpServer = net.createServer((socket) => {
     
     // Forward incoming data to the web client using Socket.io
     socket.on('data', (data) => {
+        console.log('CLI TCP - Received data from drone and sending to server: ' + data);
         io.emit('response', data.toString());
       console.log(data);
     });
@@ -47,8 +49,8 @@ const tcpServer = net.createServer((socket) => {
     };
 });
 
-tcpServer.listen(8080, () => {
-    console.log('TCP server listening on port 8080');
+tcpServer.listen(config.tcp_cli, () => {
+    console.log('TCP server listening on port '+tcp_cli);
 });
 
 

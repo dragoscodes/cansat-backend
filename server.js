@@ -34,17 +34,24 @@ Socket.on('connection', (socket) => {
         console.log('CLI socket.io - Received command from web client: ' + command);
     });
     api.get('/cli', (req, res) => {
+        console.log('API - command recieved and sending to socket' + req.query.command);
         socket.emit('command', req.query.command);
         res.send('Command recieved!');
-
         });
 
     api.post('/video', (req,res)=> {
-        console.log(req.body);
+        console.log('API - Video recieved and sending to socket' + req.body);
         socket.emit('video', req.body);
         res.send('Video recieved!');
     })
+
+    api.post('/data', (req,res)=> {
+        console.log('API - Data recieved and sending to socket' + req.body);
+        socket.emit('data', req.body);
+        res.send('Data recieved!');
+    })
     
+    //ASTA E DOAR DE TEST POTI SA O SCOTi
     setInterval(() => {
         socket.emit('response', 'test'+i+'\n');
         i++;
@@ -58,7 +65,7 @@ Socket.on('connection', (socket) => {
 });
 
 SocketServer.listen(config.socket_port, () => {
-    console.log('HTTP server listening on port '+config.socket_port);
+    console.log('Socket server listening on port '+config.socket_port);
 });
 
 apiServer.listen(4000, () => {
