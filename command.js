@@ -1,6 +1,7 @@
 const net = require('net');
 const axios = require('axios');
-const config = require('../utils/config.js');
+const config = require('./utils/config.js');
+const log = require('./utils/log.js').log;
 
 //Connect to the socket.io server
 const io = require('socket.io-client');
@@ -9,14 +10,14 @@ const socketio = io.connect(`http://${config.host}:${config.socket_port}`, {reco
 var tcpLoaded = false;
 
 socketio.on('command', (command) => {
-    console.log('CLI socket.io - Received command from web client: ' + command);
+    log('CLI socket.io - Received command from web client: ' + command);
 
         if(tcpLoaded) {
             const handleCommand = require('./command.js').handleCommand
             handleCommand(command);
-            console.log('CLI socket.io - Command sent to drone');
+            log('CLI socket.io - Command sent to drone');
         } else {
-            console.log('CLI socket.io - TCP server not loaded yet');
+            log('CLI socket.io - TCP server not loaded yet');
         }
 });
 
@@ -26,23 +27,22 @@ const tcpServer = net.createServer((socket) => {
     console.log('CLI TCP - client connected');
     tcpLoaded = true;
     function handleCommand(data) {
-        console.log('CLI TCP - Received command from web client: ' + data)
+        log('CLI TCP - Received command from web client: ' + data)
         socket.write(data, function (err) {
-            if (err) throw err;
-            console.log('CLI TCP - Command sent');
+            if (err) log(err);
+            log('CLI TCP - Command sent');
         });
     }
     
     // Forward incoming data to the web client using Socket.io
     socket.on('data', (data) => {
-        console.log('CLI TCP - Received data from drone and sending to server: ' + data);
+        log('CLI TCP - Received data from drone and sending to server: ' + data);
         socketio.emit('response', data.toString());
-      console.log(data);
     });
 
     // Handle TCP client disconnects
     socket.on('end', () => {
-        console.log('CLI TCP - client disconnected');
+        log('CLI TCP - client disconnected');
     });
     module.exports = {
         handleCommand: handleCommand
@@ -50,7 +50,7 @@ const tcpServer = net.createServer((socket) => {
 });
 
 tcpServer.listen(config.tcp_cli, () => {
-    console.log('TCP server listening on port '+config.tcp_cli);
+    log('CLI TCP server listening on port '+config.tcp_cli);
 });
 
 

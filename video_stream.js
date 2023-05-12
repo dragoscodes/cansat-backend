@@ -1,11 +1,8 @@
 var net = require('net');
 var fs = require('fs');
-const config = require('../utils/config.js');
+const config = require('./utils/config.js');
+const log = require('./utils/log.js').log;
 const request = require('request');
-
-// Configuration parameters
-var HOST = config.host;
-var PORT = config.tcp_video;
 
 let frames = [];
 let currentFrame = [];
@@ -14,17 +11,16 @@ let isJpeg = false;
 // Create Server instance 
 var server = net.createServer(onClientConnected);
 
-server.listen(PORT, HOST, function () {
-  console.log('server listening on %j', server.address());
+server.listen(config.tcp_video, config.host, function () {
+  log('Video TCP Server listening on'+ server.address());
 });
 
 function onClientConnected(sock) {
   var remoteAddress = sock.remoteAddress + ':' + sock.remotePort;
-  console.log('new client connected: %s', remoteAddress);
+  log('New client connected: '+ remoteAddress);
 
   //Listen for data and save to file
   sock.on('data', function (data) {
-    console.log('data from %s: %j', remoteAddress, data);
 
     const byteArr = Buffer.from(data, 'binary'); // convert binary data to a byte array
 
@@ -51,20 +47,18 @@ function onClientConnected(sock) {
              'Content-Type': 'image/jpeg'
          }
          }, function (error, response, body) {
-           console.log('Response: ' + response.statusCode);
+            console.log('Response: ' + response.statusCode + body);
          });
 
       }
     }
 
-
-
   });
 
   sock.on('close', function () {
-    console.log('connection from %s closed', remoteAddress);
+    log('connection closed from '+ remoteAddress);
   });
   sock.on('error', function (err) {
-    console.log('Connection %s error: %s', remoteAddress, err.message);
+    log('Connection  error: '+ remoteAddress+ ' ' +  err.message);
   });
 };
